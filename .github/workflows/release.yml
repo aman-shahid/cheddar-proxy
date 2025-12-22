@@ -64,6 +64,11 @@ jobs:
         working-directory: ./ui
         run: flutter_rust_bridge_codegen generate
 
+      - name: Build Rust core (macOS framework)
+        run: |
+          chmod +x scripts/build_rust.sh
+          FRB_CODEGEN=0 ./scripts/build_rust.sh
+
       - name: Run Unit Tests
         working-directory: ./ui
         run: flutter test
@@ -93,6 +98,10 @@ jobs:
     needs: versioning
     name: Build Windows (ZIP)
     runs-on: windows-latest
+    env:
+      CFLAGS: "/std:c11"
+      CXXFLAGS: "/std:c++17"
+      CARGO_TARGET_DIR: D:/a/ct
     
     steps:
       - uses: actions/checkout@v4
