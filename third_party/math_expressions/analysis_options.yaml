@@ -1,0 +1,19 @@
+# https://dart.dev/tools/analysis#the-analysis-options-file
+# Use official Dart lint rules from
+# https://pub.dev/documentation/lints/latest/#recommended-lints
+include: package:lints/recommended.yaml
+
+analyzer:
+  language:
+    strict-casts: false
+    strict-inference: true
+    strict-raw-types: false
+
+# Linter rules customisations. Source of linter options:
+# http://dart-lang.github.io/linter/lints/options/options.html
+linter:
+  rules:
+    control_flow_in_finally: true
+    empty_statements: true
+    unnecessary_this: false
+    constant_identifier_names: false

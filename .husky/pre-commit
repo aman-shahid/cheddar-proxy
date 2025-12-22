@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+cd "$ROOT_DIR"
+
+# Format Rust code before committing to avoid CI fmt failures.
+if [ -d core ]; then
+  echo "Running cargo fmt..."
+  (cd core && cargo fmt --all)
+fi
+
+# Format Dart/Flutter code.
+if [ -d ui ]; then
+  echo "Running dart format..."
+  (cd ui && dart format lib test integration_test)
+fi
+
+# If formatting changed files, stop the commit so the developer can review/re-stage.
+if ! git diff --quiet; then
+  echo "Formatting updated files. Please review, stage, and commit again." >&2
+  exit 1
+fi
+
+# Add other project-specific checks here as needed.

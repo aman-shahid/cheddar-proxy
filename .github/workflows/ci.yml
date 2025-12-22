@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Unit tests run quickly
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo builds
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            core/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('core/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Cache Flutter pub
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-flutter-pub-${{ hashFiles('ui/pubspec.lock', 'ui/rust_builder/cargokit/build_tool/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-pub-
+
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen@^2.0.0
+        
+      - name: Generate Bindings
+        working-directory: ./ui
+        run: flutter_rust_bridge_codegen generate
+        
+      - name: Rust Format Check
+        working-directory: ./core
+        run: cargo fmt --all -- --check
+
+      - name: Rust Clippy
+        working-directory: ./core
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Rust Tests
+        working-directory: ./core
+        run: cargo test
+
+      - name: Flutter Analyze
+        working-directory: ./ui
+        run: |
+          flutter pub get
+          dart analyze
+      
+      - name: Run Unit Tests
+        working-directory: ./ui
+        run: flutter test

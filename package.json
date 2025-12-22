@@ -1,0 +1,17 @@
+{
+  "name": "cheddarproxy",
+  "version": "1.0.0",
+  "description": "> 🔍 A free, open-source, cross-platform network traffic inspector for developers.",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky"
+  },
+  "keywords": [],
+  "devDependencies": {
+    "@commitlint/cli": "^20.2.0",
+    "@commitlint/config-conventional": "^20.2.0",
+    "husky": "^9.1.7"
+  }
+}

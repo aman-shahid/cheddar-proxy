@@ -1,0 +1,71 @@
+name: cheddarproxy
+description: "A free, open-source, cross-platform network traffic inspector"
+publish_to: 'none'
+version: 0.0.1+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Icons
+  cupertino_icons: ^1.0.8
+  
+  # State management
+  provider: ^6.1.1
+  
+  # Utilities
+  intl: ^0.20.2
+  collection: ^1.18.0
+  
+  # Syntax highlighting for JSON/XML bodies
+  flutter_highlight: ^0.7.0
+  highlight: ^0.7.0
+  
+  # Google Fonts for premium typography
+  google_fonts: ^6.3.3
+  
+  # Window management for desktop
+  window_manager: ^0.3.8
+  
+  # Rust FFI bridge
+  flutter_rust_bridge: 2.11.1
+  rust_lib_cheddarproxy:
+    path: rust_builder
+  path_provider: ^2.1.5
+  url_launcher: ^6.3.2
+  file_picker: ^10.3.7
+  macos_ui: ^2.2.2
+  fluent_ui: ^4.9.2
+  system_theme: ^3.1.2
+  package_info_plus: ^8.3.0
+  http: ^1.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  integration_test:
+    sdk: flutter
+  ffigen: ^20.1.1
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  macos:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+  windows:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+    icon_size: 256
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon/
+
+dependency_overrides:
+  math_expressions:
+    path: ../third_party/math_expressions

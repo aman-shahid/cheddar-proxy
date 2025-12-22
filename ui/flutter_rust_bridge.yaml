@@ -1,0 +1,14 @@
+# flutter_rust_bridge configuration
+# https://cjycode.com/flutter_rust_bridge/
+
+# Path to the Rust crate (lives in repository root `core/`)
+rust_root: "../core"
+
+# Path to the Rust API file
+rust_input: "crate::api"
+
+# Output paths for generated Dart code
+dart_output: "lib/src/rust"
+
+# Full dependency mode - generates all types
+full_dep: true

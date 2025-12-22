@@ -1,0 +1,11 @@
+# Cargokit build configuration
+# This file configures how cargo is invoked during Flutter build
+
+cargo:
+  # Debug build configuration
+  debug:
+    extra_flags: []
+  
+  # Release build configuration
+  release:
+    extra_flags: []

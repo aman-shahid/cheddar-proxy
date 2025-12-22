@@ -1,0 +1,110 @@
+# Miscellaneous
+*.class
+*.log
+*.lock
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.exe
+*.dll
+.vscode/
+
+# IntelliJ / VS Code
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+.factorypath
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+.scannerwork/
+build/
+flutter_*.png
+.tmp/
+
+# Android
+android/gradle/
+android/captures/
+android/gradlew
+android/gradlew.bat
+android/local.properties
+android/generated/
+android/.gradle
+android/app/src/main/assets/
+
+# iOS
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Flutter/Generated.xcconfig
+ios/Flutter/app.flx
+ios/Flutter/app.zip
+ios/Flutter/flutter_assets/
+ios/ServiceDefinitions.json
+ios/Runner/GeneratedPluginRegistrant.*
+
+# macOS
+macos/Flutter/ephemeral/
+macos/Flutter/GeneratedPluginRegistrant.swift
+*.dylib
+
+# Windows
+**/windows/flutter/generated_*
+
+# Linux
+**/linux/flutter/generated_*
+
+# macOS Frameworks (built from Rust, should not be version controlled)
+ui/macos/Frameworks/
+ui/macos/cheddarproxy_mcp_bridge
+
+# Build logs
+build_log*.txt
+
+# Benchmark results
+benchmark_results/
+
+# Rust
+target/
+**/*.rs.bk
+
+# Cheddar Proxy Specific
+ui/pubspec.lock
+.fake_flutter/
+core/src/frb_generated.rs
+ui/lib/src/rust/
+
+*.dmg
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+.pnp.js
+.pnp.cjs
+.pnp.loader.mjs
+.pnp.loader.cjs
+.pnp/
+# Certificates (Security Risk - Do Not Commit)
+*.pem
+*.key
+*.crt
+*.der

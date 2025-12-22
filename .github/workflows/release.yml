@@ -1,0 +1,161 @@
+name: Release Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  versioning:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.semver.outputs.version }}
+      version_tag: ${{ steps.semver.outputs.version_tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate Semantic Version
+        id: semver
+        uses: paulhatch/semantic-version@v5.4.0
+        with:
+          branch: "main"
+          # Define tag prefix (e.g. v1.0.0)
+          tag_prefix: "v" 
+          # Version format (e.g. 1.0.0)
+          version_format: "${major}.${minor}.${patch}"
+          # Prevent tagging if no changes
+          bump_each_commit: false
+
+  build-macos:
+    needs: versioning
+    name: Build macOS (DMG)
+    runs-on: macos-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: aarch64-apple-darwin, x86_64-apple-darwin
+
+      - name: Install cargo-expand (for flutter_rust_bridge)
+        run: cargo install cargo-expand
+          
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install CocoaPods
+        run: |
+          sudo gem install cocoapods -n /usr/local/bin
+          pod --version
+          
+      - name: Install Codegen Dependencies
+        run: |
+           cargo install flutter_rust_bridge_codegen@^2.0.0
+           
+      - name: Generate Bindings
+        working-directory: ./ui
+        run: flutter_rust_bridge_codegen generate
+
+      - name: Run Unit Tests
+        working-directory: ./ui
+        run: flutter test
+
+      - name: Run E2E Integration Tests (macOS)
+        working-directory: ./ui
+        run: |
+          flutter test integration_test/e2e_test.dart -d macos --timeout 5m
+
+      - name: Build Release (DMG)
+        run: |
+          chmod +x build_release.sh
+          chmod +x build_rust.sh
+          ./build_release.sh
+        env:
+          # Use calculated version + github run number
+          VERSION: ${{ needs.versioning.outputs.version }}
+          BUILD_NUMBER: ${{ github.run_number }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CheddarProxy-macOS-DMG
+          path: build/releases/*.dmg
+
+  build-windows:
+    needs: versioning
+    name: Build Windows (ZIP)
+    runs-on: windows-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          
+      - name: Install cargo-expand (for flutter_rust_bridge)
+        run: cargo install cargo-expand
+        shell: pwsh
+          
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          
+      - name: Install LLVM (for dart-bindgen)
+        run: choco install llvm -y
+        
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen@^2.0.0
+
+      - name: Generate Bindings
+        working-directory: ./ui
+        run: flutter_rust_bridge_codegen generate
+
+      - name: Run Unit Tests
+        working-directory: ./ui
+        run: flutter test
+
+      - name: Run E2E Integration Tests (Windows)
+        working-directory: ./ui
+        run: |
+          flutter test integration_test/e2e_test.dart -d windows --timeout 5m
+        shell: pwsh
+        
+      - name: Build Release
+        run: .\build_release.ps1 -Version "${{ needs.versioning.outputs.version }}" -BuildNumber ${{ github.run_number }}
+        shell: pwsh
+          
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CheddarProxy-Windows
+          path: build/releases/*.zip
+
+  create-release:
+    needs: [versioning, build-macos, build-windows]
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: CheddarProxy-*
+          merge-multiple: true
+          path: releases
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.versioning.outputs.version_tag }}
+          name: Release ${{ needs.versioning.outputs.version }}
+          files: releases/*
+          generate_release_notes: true

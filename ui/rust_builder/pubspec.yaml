@@ -1,0 +1,23 @@
+name: rust_lib_cheddarproxy
+description: "Rust library builder for Cheddar Proxy"
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.0.0
+  flutter: ">=3.3.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_rust_bridge: 2.11.1
+
+flutter:
+  plugin:
+    platforms:
+      macos:
+        ffiPlugin: true
+      windows:
+        ffiPlugin: true
+      linux:
+        ffiPlugin: true
