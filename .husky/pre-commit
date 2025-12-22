@@ -8,12 +8,18 @@ cd "$ROOT_DIR"
 if [ -d core ]; then
   echo "Running cargo fmt..."
   (cd core && cargo fmt --all)
+
+  echo "Running cargo clippy..."
+  (cd core && cargo clippy --all-targets --all-features -- -D warnings)
 fi
 
 # Format Dart/Flutter code.
 if [ -d ui ]; then
   echo "Running dart format..."
   (cd ui && dart format lib test integration_test)
+
+  echo "Running flutter analyze..."
+  (cd ui && flutter analyze)
 fi
 
 # If formatting changed files, stop the commit so the developer can review/re-stage.

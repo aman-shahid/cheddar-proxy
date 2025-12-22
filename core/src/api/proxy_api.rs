@@ -393,8 +393,7 @@ pub async fn start_proxy(config: ProxyConfig) -> Result<bool, String> {
     }
 
     // Find an available port starting from the requested one
-    let selected_port =
-        find_available_port(&config.bind_address, config.port, 20).await.map_err(|e| e)?;
+    let selected_port = find_available_port(&config.bind_address, config.port, 20).await?;
 
     if selected_port != config.port {
         tracing::warn!(
