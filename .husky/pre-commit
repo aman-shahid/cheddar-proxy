@@ -14,6 +14,9 @@ fi
 if [ -d ui ]; then
   echo "Running dart format..."
   (cd ui && dart format lib test integration_test)
+
+  echo "Running flutter analyze..."
+  (cd ui && flutter analyze)
 fi
 
 # If formatting changed files, stop the commit so the developer can review/re-stage.

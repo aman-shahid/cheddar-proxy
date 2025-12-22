@@ -1390,14 +1390,18 @@ class _McpConfigBlockState extends State<_McpConfigBlock> {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
         child: InkWell(
           onTap: onPressed,
           borderRadius: BorderRadius.circular(4),
           child: Container(
             padding: const EdgeInsets.all(6),
-            child: Icon(icon, size: 14, color: Colors.white.withOpacity(0.7)),
+            child: Icon(
+              icon,
+              size: 14,
+              color: Colors.white.withValues(alpha: 0.7),
+            ),
           ),
         ),
       ),

@@ -174,7 +174,7 @@ class TrafficState extends ChangeNotifier {
       // Initialize CA
       // Initialize CA
       try {
-        await rust_api.ensureRootCa(storagePath: _storagePath!);
+        rust_api.ensureRootCa(storagePath: _storagePath!);
       } catch (e) {
         LoggerService.error('Failed to initialize CA: $e');
       }
