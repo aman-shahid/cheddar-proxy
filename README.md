@@ -1,4 +1,4 @@
-# Cheddar Proxy
+# Cheddar Proxy ![App Icon](ui/assets/icon/app_icon.png)
 
 > 🔍 A free, open-source, cross-platform network traffic inspector for developers and AI agents.
 
