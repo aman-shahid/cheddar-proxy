@@ -9,6 +9,8 @@ param(
 # Default values if not provided
 if (-not $Version) { $Version = "1.0.0" }
 if (-not $BuildNumber) { $BuildNumber = 1 }
+$BuildDir = $env:FLUTTER_BUILD_DIR
+if (-not $BuildDir) { $BuildDir = "build" }
 
 # Normalize version (strip leading 'v' if present)
 if ($Version.StartsWith("v")) {
@@ -67,6 +69,7 @@ if (Test-Path $RustDll) {
 Write-Host "`n[4/4] Building Flutter Windows app..." -ForegroundColor Yellow
 Push-Location ui
 try {
+    $env:FLUTTER_BUILD_DIR = $BuildDir
     flutter build windows --release --build-name="$Version" --build-number=$BuildNumber
     if ($LASTEXITCODE -ne 0) { throw "Flutter build failed" }
 } finally {
@@ -74,7 +77,7 @@ try {
 }
 
 # Output location
-$OutputDir = "ui\build\windows\x64\runner\Release"
+$OutputDir = "ui\$BuildDir\windows\x64\runner\Release"
 Write-Host "`n======================================" -ForegroundColor Green
 Write-Host "  Build Complete!" -ForegroundColor Green
 Write-Host "  Output: $OutputDir" -ForegroundColor Green
@@ -91,7 +94,7 @@ if (Test-Path $BridgeExe) {
 
 # Optional: Create ZIP archive (standardized name)
 $ZipName = "CheddarProxy-$Version-windows.zip"
-$ReleasesDir = "build\releases"
+$ReleasesDir = "$BuildDir\releases"
 
 if (-not (Test-Path $ReleasesDir)) {
     New-Item -ItemType Directory -Path $ReleasesDir -Force | Out-Null

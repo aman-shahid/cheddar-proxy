@@ -75,9 +75,9 @@ jobs:
 
       - name: Build Release (DMG)
         run: |
-          chmod +x build_release.sh
-          chmod +x build_rust.sh
-          ./build_release.sh
+          chmod +x scripts/build_release.sh
+          chmod +x scripts/build_rust.sh
+          ./scripts/build_release.sh
         env:
           # Use calculated version + github run number
           VERSION: ${{ needs.versioning.outputs.version }}
@@ -97,9 +97,14 @@ jobs:
       CFLAGS: "/std:c11 /experimental:c11atomics"
       CXXFLAGS: "/std:c++17"
       CARGO_TARGET_DIR: D:/a/ct
+      CARGOKIT_TEMP_DIR: C:/cktmp
     
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Prepare short Cargokit temp dir
+        run: New-Item -ItemType Directory -Path C:\cktmp -Force
+        shell: pwsh
       
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -136,7 +141,7 @@ jobs:
         shell: pwsh
         
       - name: Build Release
-        run: .\build_release.ps1 -Version "${{ needs.versioning.outputs.version }}" -BuildNumber ${{ github.run_number }}
+        run: .\scripts\build_release.ps1 -Version "${{ needs.versioning.outputs.version }}" -BuildNumber ${{ github.run_number }}
         shell: pwsh
           
       - name: Upload Artifact
