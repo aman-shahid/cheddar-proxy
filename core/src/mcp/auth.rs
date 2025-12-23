@@ -268,7 +268,7 @@ fn constant_time_eq(a: &str, b: &str) -> bool {
 #[cfg(target_os = "windows")]
 fn dpapi_protect(data: &[u8]) -> Result<Vec<u8>> {
     unsafe {
-        let mut in_blob = DATA_BLOB {
+        let in_blob = DATA_BLOB {
             cbData: data.len() as u32,
             pbData: data.as_ptr() as *mut u8,
         };
@@ -278,7 +278,7 @@ fn dpapi_protect(data: &[u8]) -> Result<Vec<u8>> {
         };
 
         let ok = CryptProtectData(
-            &mut in_blob,
+            &in_blob,
             std::ptr::null(),
             std::ptr::null(),
             std::ptr::null_mut(),
@@ -305,7 +305,7 @@ fn dpapi_protect(data: &[u8]) -> Result<Vec<u8>> {
 #[cfg(target_os = "windows")]
 fn dpapi_unprotect(data: &[u8]) -> Result<Vec<u8>> {
     unsafe {
-        let mut in_blob = DATA_BLOB {
+        let in_blob = DATA_BLOB {
             cbData: data.len() as u32,
             pbData: data.as_ptr() as *mut u8,
         };
@@ -315,7 +315,7 @@ fn dpapi_unprotect(data: &[u8]) -> Result<Vec<u8>> {
         };
 
         let ok = CryptUnprotectData(
-            &mut in_blob,
+            &in_blob,
             std::ptr::null_mut(),
             std::ptr::null(),
             std::ptr::null_mut(),

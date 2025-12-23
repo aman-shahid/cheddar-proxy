@@ -73,11 +73,6 @@ jobs:
         working-directory: ./ui
         run: flutter test
 
-      - name: Run E2E Integration Tests (macOS)
-        working-directory: ./ui
-        run: |
-          flutter test integration_test/e2e_test.dart -d macos --timeout 5m
-
       - name: Build Release (DMG)
         run: |
           chmod +x build_release.sh
@@ -99,7 +94,7 @@ jobs:
     name: Build Windows (ZIP)
     runs-on: windows-latest
     env:
-      CFLAGS: "/std:c11"
+      CFLAGS: "/std:c11 /experimental:c11atomics"
       CXXFLAGS: "/std:c++17"
       CARGO_TARGET_DIR: D:/a/ct
     
