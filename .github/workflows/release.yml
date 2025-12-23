@@ -137,7 +137,7 @@ jobs:
       - name: Run E2E Integration Tests (Windows)
         working-directory: ./ui
         run: |
-          flutter test integration_test/e2e_test.dart -d windows --timeout 5m
+          flutter test integration_test/e2e_windows_test.dart -d windows --timeout 5m
         shell: pwsh
         
       - name: Build Release
