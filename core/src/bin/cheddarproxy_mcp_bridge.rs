@@ -1,3 +1,4 @@
+#[cfg(unix)]
 use std::path::PathBuf;
 
 #[cfg(not(unix))]
@@ -28,14 +29,18 @@ fn parse_args_from<I>(mut args: I) -> Result<BridgeConfig>
 where
     I: Iterator<Item = String>,
 {
+    #[cfg(unix)]
     let mut socket_path: Option<PathBuf> = None;
     let mut tcp_addr: Option<String> = None;
 
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--socket" => {
-                if let Some(path) = args.next() {
-                    socket_path = Some(PathBuf::from(path));
+                if let Some(_path) = args.next() {
+                    #[cfg(unix)]
+                    {
+                        socket_path = Some(PathBuf::from(_path));
+                    }
                 }
             }
             "--tcp" | "--addr" => {

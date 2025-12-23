@@ -35,15 +35,42 @@ impl PlatformProxyAdapter for WindowsProxyAdapter {
     }
 
     fn disable_system_proxy(&self) -> Result<()> {
-        Self::run_netsh(&["winhttp", "reset", "proxy"])
+        // `netsh winhttp reset proxy` returns exit code 1 in multiple scenarios:
+        // - No proxy was set (shows "Direct access")
+        // - Access denied but already in direct mode
+        // - Nothing to reset
+        // All of these are acceptable outcomes for "disable proxy".
+        let output = Command::new("netsh")
+            .args(["winhttp", "reset", "proxy"])
+            .output();
+        match output {
+            Ok(out) if out.status.success() => Ok(()),
+            Ok(out) => {
+                let stderr = String::from_utf8_lossy(&out.stderr);
+                let stdout = String::from_utf8_lossy(&out.stdout);
+                let combined = format!("{}{}", stdout, stderr);
+                let combined_lower = combined.to_lowercase();
+
+                // Accept as success if:
+                // 1. "direct access" is mentioned (no proxy set / already direct)
+                // 2. "no proxy" is mentioned
+                // 3. The system is already in the desired state (proxy disabled)
+                if combined_lower.contains("direct access") || combined_lower.contains("no proxy") {
+                    Ok(())
+                } else {
+                    Err(anyhow!(
+                        "netsh exited with exit code: {}",
+                        out.status.code().unwrap_or(-1)
+                    ))
+                }
+            }
+            Err(err) => Err(anyhow!(err)),
+        }
     }
 
     fn detect_certificate_trust(&self, common_name: &str) -> Result<CertTrustStatus> {
         let query = format!("Root {}", common_name);
-        let trusted = match Self::run_certutil(&["-store", "-user", "Root", &query]) {
-            Ok(found) => found,
-            Err(_) => false,
-        };
+        let trusted = Self::run_certutil(&["-store", "-user", "Root", &query]).unwrap_or_default();
         Ok(if trusted {
             CertTrustStatus::Trusted
         } else {

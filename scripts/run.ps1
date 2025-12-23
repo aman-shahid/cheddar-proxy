@@ -35,6 +35,33 @@ if ($Clean) {
     Write-Host "Clean complete." -ForegroundColor Green
 }
 
+# Generate Rust bindings (unless skipped, but usually we need them)
+if (-not $SkipBuild) {
+    Write-Host "Checking Rust bindings..." -ForegroundColor Cyan
+    Push-Location ui
+    # Check if we have the codegen tool
+    if (Get-Command flutter_rust_bridge_codegen -ErrorAction SilentlyContinue) {
+        # Fix missing C headers on Windows (LLVM)
+        if (-not $env:CPATH) {
+            $ClangInclude = Get-ChildItem "C:\Program Files\LLVM\lib\clang\*\include" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($ClangInclude) {
+                $env:CPATH = $ClangInclude.FullName
+                Write-Host "Set CPATH to $env:CPATH" -ForegroundColor Gray
+            }
+        }
+
+        Write-Host "Generating bindings..." -ForegroundColor Gray
+        flutter_rust_bridge_codegen generate --config-file flutter_rust_bridge.yaml
+        if ($LASTEXITCODE -ne 0) {
+             Pop-Location
+             throw "Binding generation failed" 
+        }
+    } else {
+        Write-Host "Warning: flutter_rust_bridge_codegen not found. Skipping generation." -ForegroundColor Yellow
+    }
+    Pop-Location
+}
+
 if (-not $SkipBuild) {
     Write-Host "Building Rust core..." -ForegroundColor Cyan
     Push-Location core
