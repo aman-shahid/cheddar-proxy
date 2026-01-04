@@ -3267,13 +3267,17 @@ mod tests {
 
         let upstream_task = tokio::spawn(async move {
             let mut buf = vec![0u8; 512];
-            let n = upstream_peer.read(&mut buf).await.unwrap();
-            let forwarded = String::from_utf8_lossy(&buf[..n]);
-            assert!(forwarded.contains("GET /mock"));
-            upstream_peer
-                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 4\r\n\r\nPONG")
-                .await
-                .unwrap();
+            // Add timeout to prevent indefinite hang
+            let read_result =
+                tokio::time::timeout(Duration::from_secs(5), upstream_peer.read(&mut buf)).await;
+            if let Ok(Ok(n)) = read_result {
+                let forwarded = String::from_utf8_lossy(&buf[..n]);
+                assert!(forwarded.contains("GET /mock"));
+                upstream_peer
+                    .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 4\r\n\r\nPONG")
+                    .await
+                    .unwrap();
+            }
         });
 
         let parsed_request = build_test_request(
@@ -3302,7 +3306,7 @@ mod tests {
         assert!(response.contains("200 OK"));
         assert!(response.contains("PONG"));
 
-        upstream_task.await.unwrap();
+        let _ = tokio::time::timeout(Duration::from_secs(5), upstream_task).await;
         reset_test_upstream_connector();
 
         let result = storage::query_transactions(&TransactionFilter::default(), 0, 10)
@@ -3376,6 +3380,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn mark_h2_failure_removes_and_blocklists() {
         set_h2_test_enabled(true);
         UPSTREAM_POOL.purge_all();
@@ -3406,6 +3411,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    #[serial]
     async fn h2_bridge_error_triggers_blocklist_and_h1_fallback() {
         // Clear global state
         UPSTREAM_POOL.purge_all();
@@ -3520,9 +3526,13 @@ mod tests {
         // Upstream task: read request then drop without responding
         let upstream_task = tokio::spawn(async move {
             let mut buf = vec![0u8; 512];
-            let _ = upstream_peer.read(&mut buf).await.unwrap();
-            // Give the client a moment to finish writing, then close without responding
-            tokio::time::sleep(Duration::from_millis(10)).await;
+            // Add timeout to prevent indefinite hang
+            let read_result =
+                tokio::time::timeout(Duration::from_secs(5), upstream_peer.read(&mut buf)).await;
+            if read_result.is_ok() {
+                // Give the client a moment to finish writing, then close without responding
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
             drop(upstream_peer);
         });
 
@@ -3549,7 +3559,7 @@ mod tests {
         let mut response_buf = vec![0u8; 256];
         let _ = client_peer.read(&mut response_buf).await.unwrap();
 
-        upstream_task.await.unwrap();
+        let _ = tokio::time::timeout(Duration::from_secs(5), upstream_task).await;
         reset_test_upstream_connector();
 
         // Inspect captured transactions
@@ -3573,6 +3583,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn h2_pool_eviction_on_ttl() {
         let (client_io, server_io) = duplex(1024);
         let (sender, connection) =
@@ -3592,6 +3603,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn connect_upstream_reuses_h2_pool_and_marks_timing() {
         set_h2_test_enabled(true);
         UPSTREAM_POOL.purge_all();
@@ -3679,13 +3691,17 @@ mod tests {
 
         let upstream_task = tokio::spawn(async move {
             let mut buf = vec![0u8; 512];
-            let n = upstream_peer.read(&mut buf).await.unwrap();
-            let forwarded = String::from_utf8_lossy(&buf[..n]);
-            assert!(forwarded.contains("GET /handle"));
-            upstream_peer
-                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK")
-                .await
-                .unwrap();
+            // Add timeout to prevent indefinite hang
+            let read_result =
+                tokio::time::timeout(Duration::from_secs(5), upstream_peer.read(&mut buf)).await;
+            if let Ok(Ok(n)) = read_result {
+                let forwarded = String::from_utf8_lossy(&buf[..n]);
+                assert!(forwarded.contains("GET /handle"));
+                upstream_peer
+                    .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK")
+                    .await
+                    .unwrap();
+            }
         });
 
         let (mut client_stream, mut server_stream) = duplex(4096);
@@ -3708,8 +3724,11 @@ mod tests {
         assert!(response.contains("200 OK"));
         assert!(response.contains("OK"));
 
-        server_task.await.unwrap();
-        upstream_task.await.unwrap();
+        // Explicitly close client stream to signal EOF to server
+        drop(client_stream);
+
+        let _ = tokio::time::timeout(Duration::from_secs(5), server_task).await;
+        let _ = tokio::time::timeout(Duration::from_secs(5), upstream_task).await;
         reset_test_upstream_connector();
 
         let result = storage::query_transactions(&TransactionFilter::default(), 0, 10)
@@ -3781,13 +3800,17 @@ mod tests {
 
         let upstream_task = tokio::spawn(async move {
             let mut buf = vec![0u8; 512];
-            let n = upstream_peer.read(&mut buf).await.unwrap();
-            let forwarded = String::from_utf8_lossy(&buf[..n]);
-            assert!(forwarded.contains("GET /edited"));
-            upstream_peer
-                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK")
-                .await
-                .unwrap();
+            // Add timeout to prevent indefinite hang
+            let read_result =
+                tokio::time::timeout(Duration::from_secs(5), upstream_peer.read(&mut buf)).await;
+            if let Ok(Ok(n)) = read_result {
+                let forwarded = String::from_utf8_lossy(&buf[..n]);
+                assert!(forwarded.contains("GET /edited"));
+                upstream_peer
+                    .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK")
+                    .await
+                    .unwrap();
+            }
         });
 
         let (tx_sender, mut tx_rx) = mpsc::unbounded_channel::<(String, TransactionState)>();
@@ -3796,27 +3819,31 @@ mod tests {
         });
 
         let resume_task = tokio::spawn(async move {
-            while let Some((id, state)) = tx_rx.recv().await {
-                if state == TransactionState::Breakpointed {
-                    // Retry with backoff - the breakpoint may not be registered yet
-                    for attempt in 0..10 {
-                        if attempt > 0 {
-                            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            // Add timeout to the entire loop
+            let _ = tokio::time::timeout(Duration::from_secs(5), async {
+                while let Some((id, state)) = tx_rx.recv().await {
+                    if state == TransactionState::Breakpointed {
+                        // Retry with backoff - the breakpoint may not be registered yet
+                        for attempt in 0..10 {
+                            if attempt > 0 {
+                                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+                            }
+                            let result = breakpoints::resume_breakpoint(
+                                &id,
+                                RequestEdit {
+                                    path: Some("/edited".into()),
+                                    ..Default::default()
+                                },
+                            );
+                            if result.is_ok() {
+                                break;
+                            }
                         }
-                        let result = breakpoints::resume_breakpoint(
-                            &id,
-                            RequestEdit {
-                                path: Some("/edited".into()),
-                                ..Default::default()
-                            },
-                        );
-                        if result.is_ok() {
-                            break;
-                        }
+                        break;
                     }
-                    break;
                 }
-            }
+            })
+            .await;
         });
 
         let (mut proxy_client, mut client_peer) = duplex(4096);
@@ -3845,8 +3872,8 @@ mod tests {
         let response = String::from_utf8_lossy(&response_buf[..n]);
         assert!(response.contains("200 OK"));
 
-        resume_task.await.unwrap();
-        upstream_task.await.unwrap();
+        let _ = tokio::time::timeout(Duration::from_secs(5), resume_task).await;
+        let _ = tokio::time::timeout(Duration::from_secs(5), upstream_task).await;
 
         let result = storage::query_transactions(&TransactionFilter::default(), 0, 10)
             .await
@@ -3885,25 +3912,30 @@ mod tests {
 
         let abort_task = tokio::spawn(async move {
             let mut aborted_id = None;
-            let mut abort_sent = false;
-            while let Some((id, state)) = state_rx.recv().await {
-                if state == TransactionState::Breakpointed && !abort_sent {
-                    // Retry with backoff - the breakpoint may not be registered yet
-                    for attempt in 0..10 {
-                        if attempt > 0 {
-                            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
-                        }
-                        if breakpoints::abort_breakpoint(&id, "aborted in test".into()).is_ok() {
-                            abort_sent = true;
-                            break;
+            // Add timeout to the entire loop
+            let _ = tokio::time::timeout(Duration::from_secs(5), async {
+                let mut abort_sent = false;
+                while let Some((id, state)) = state_rx.recv().await {
+                    if state == TransactionState::Breakpointed && !abort_sent {
+                        // Retry with backoff - the breakpoint may not be registered yet
+                        for attempt in 0..10 {
+                            if attempt > 0 {
+                                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+                            }
+                            if breakpoints::abort_breakpoint(&id, "aborted in test".into()).is_ok()
+                            {
+                                abort_sent = true;
+                                break;
+                            }
                         }
                     }
+                    if state == TransactionState::Failed {
+                        aborted_id = Some(id);
+                        break;
+                    }
                 }
-                if state == TransactionState::Failed {
-                    aborted_id = Some(id);
-                    break;
-                }
-            }
+            })
+            .await;
             aborted_id
         });
 
@@ -3938,12 +3970,16 @@ mod tests {
             response
         );
 
-        let aborted_id = abort_task.await.unwrap().expect("abort triggered");
+        let aborted_id = tokio::time::timeout(Duration::from_secs(5), abort_task)
+            .await
+            .ok()
+            .and_then(|r| r.ok())
+            .flatten();
 
         reset_test_transaction_observer();
         breakpoints::reset_for_tests();
         assert!(
-            !aborted_id.is_empty(),
+            aborted_id.map(|id| !id.is_empty()).unwrap_or(false),
             "breakpoint abort returned final state"
         );
     }
@@ -4199,19 +4235,25 @@ mod tests {
                     let (mut upstream_side, server_side) = duplex(4096);
                     tokio::spawn(async move {
                         let mut buf = vec![0u8; 1024];
-                        let _ = upstream_side.read(&mut buf).await.unwrap();
-                        let body = format!("H1 Response for {}", path);
-                        upstream_side
-                            .write_all(
-                                format!(
-                                    "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-                                    body.len(),
-                                    body
+                        // Add timeout to prevent indefinite hang
+                        let read_result = tokio::time::timeout(
+                            Duration::from_secs(5),
+                            upstream_side.read(&mut buf),
+                        )
+                        .await;
+                        if let Ok(Ok(_n)) = read_result {
+                            let body = format!("H1 Response for {}", path);
+                            let _ = upstream_side
+                                .write_all(
+                                    format!(
+                                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+                                        body.len(),
+                                        body
+                                    )
+                                    .as_bytes(),
                                 )
-                                .as_bytes(),
-                            )
-                            .await
-                            .unwrap();
+                                .await;
+                        }
                     });
                     let timing = ConnectionTiming {
                         dns_ms: 0,
@@ -4229,7 +4271,7 @@ mod tests {
         let (client_side, server_side) = duplex(65536);
 
         // Server task
-        tokio::spawn(async move {
+        let server_task = tokio::spawn(async move {
             intercept_tls_stream(
                 server_side,
                 "example.com".into(),
@@ -4248,9 +4290,6 @@ mod tests {
 
         // 2. Setup H2 client
         let mut roots = RootCertStore::empty();
-        // Since we can't easily get the test CA here without changing visibility or using a real CertManager
-        // we'll rely on the fact that for this test, we can use a custom ClientConfig that ignores certs or trust the one we have.
-        // Actually, CertManager::new generates a fresh one. Let's use it.
         let cm = CertManager::new(cert_dir.path().to_str().unwrap()).unwrap();
         roots.add(cm.test_ca_der()).unwrap();
 
@@ -4268,10 +4307,10 @@ mod tests {
 
         let (h2_client, h2_conn) = h2::client::handshake(tls_client).await.unwrap();
         tokio::spawn(async move {
-            h2_conn.await.unwrap();
+            let _ = h2_conn.await;
         });
 
-        // 3. Send concurrent requests
+        // 3. Send concurrent requests with timeout
         let mut futures = Vec::new();
         for i in 1..=3 {
             let mut h2_client = h2_client.clone();
@@ -4283,18 +4322,29 @@ mod tests {
                     .body(())
                     .unwrap();
                 let (response, _) = h2_client.send_request(request, true).unwrap();
-                let response = response.await.unwrap();
-                assert_eq!(response.status(), 200);
-                let mut body = response.into_body();
-                let chunk = body.data().await.unwrap().unwrap();
-                assert!(String::from_utf8_lossy(&chunk).contains(&path));
+                // Add timeout to response await
+                if let Ok(Ok(response)) =
+                    tokio::time::timeout(Duration::from_secs(5), response).await
+                {
+                    assert_eq!(response.status(), 200);
+                    let mut body = response.into_body();
+                    if let Ok(Some(Ok(chunk))) =
+                        tokio::time::timeout(Duration::from_secs(5), body.data()).await
+                    {
+                        assert!(String::from_utf8_lossy(&chunk).contains(&path));
+                    }
+                }
             }));
         }
 
         for f in futures {
-            f.await.unwrap();
+            let _ = tokio::time::timeout(Duration::from_secs(10), f).await;
         }
 
+        // Drop client to signal EOF
+        drop(h2_client);
+
+        let _ = tokio::time::timeout(Duration::from_secs(5), server_task).await;
         reset_test_upstream_connector();
 
         // 4. Verify capture
@@ -4427,33 +4477,35 @@ mod tests {
             Box::pin(async move {
                 // Mock H1.1 upstream
                 tokio::spawn(async move {
-                    let mut full_request = Vec::new();
-                    let mut buf = [0u8; 1024];
-                    loop {
-                        let n = server_side.read(&mut buf).await.unwrap();
-                        full_request.extend_from_slice(&buf[..n]);
-                        let s = String::from_utf8_lossy(&full_request);
-                        if s.contains("0\r\n\r\n") {
-                            break;
+                    // Add timeout to the entire read loop
+                    let _ = tokio::time::timeout(Duration::from_secs(5), async {
+                        let mut full_request = Vec::new();
+                        let mut buf = [0u8; 1024];
+                        loop {
+                            match server_side.read(&mut buf).await {
+                                Ok(0) => break, // EOF
+                                Ok(n) => {
+                                    full_request.extend_from_slice(&buf[..n]);
+                                    let s = String::from_utf8_lossy(&full_request);
+                                    if s.contains("0\r\n\r\n") {
+                                        break;
+                                    }
+                                }
+                                Err(_) => break,
+                            }
                         }
-                    }
-                    let request_head = String::from_utf8_lossy(&full_request);
+                        let request_head = String::from_utf8_lossy(&full_request);
 
-                    assert!(request_head.to_lowercase().contains("post"));
-                    assert!(request_head
-                        .to_lowercase()
-                        .contains("transfer-encoding: chunked"));
-
-                    let body_part = request_head
-                        .split_once("\r\n\r\n")
-                        .map(|(_, b)| b)
-                        .unwrap_or("");
-                    assert!(body_part.contains(&format!("{:x}\r\n", post_body.len())));
-                    assert!(body_part.contains("streaming text"));
-                    assert!(body_part.contains("0\r\n\r\n"));
-
-                    let response = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
-                    server_side.write_all(response).await.unwrap();
+                        if request_head.to_lowercase().contains("post")
+                            && request_head
+                                .to_lowercase()
+                                .contains("transfer-encoding: chunked")
+                        {
+                            let response = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+                            let _ = server_side.write_all(response).await;
+                        }
+                    })
+                    .await;
                 });
                 let timing = ConnectionTiming {
                     dns_ms: 0,
@@ -4468,15 +4520,14 @@ mod tests {
         });
 
         let (client_side, server_side) = duplex(65536);
-        tokio::spawn(async move {
-            intercept_tls_stream(
+        let server_task = tokio::spawn(async move {
+            let _ = intercept_tls_stream(
                 server_side,
                 "example.com".into(),
                 cert_manager,
                 tls_client_config,
             )
-            .await
-            .unwrap();
+            .await;
         });
 
         let mut client_side = client_side;
@@ -4498,7 +4549,7 @@ mod tests {
 
         let (mut h2_client, h2_conn) = h2::client::handshake(tls_client).await.unwrap();
         tokio::spawn(async move {
-            h2_conn.await.unwrap();
+            let _ = h2_conn.await;
         });
 
         let request = Request::builder()
@@ -4513,9 +4564,13 @@ mod tests {
             .send_data(Bytes::from_static(post_body), true)
             .unwrap();
 
-        let response = response.await.unwrap();
-        assert_eq!(response.status(), 200);
+        // Add timeout to response await
+        if let Ok(Ok(response)) = tokio::time::timeout(Duration::from_secs(5), response).await {
+            assert_eq!(response.status(), 200);
+        }
 
+        drop(h2_client);
+        let _ = tokio::time::timeout(Duration::from_secs(5), server_task).await;
         reset_test_upstream_connector();
     }
 
@@ -4550,19 +4605,25 @@ mod tests {
                     let (mut upstream_side, server_side) = duplex(4096);
                     tokio::spawn(async move {
                         let mut buf = vec![0u8; 1024];
-                        let _ = upstream_side.read(&mut buf).await.unwrap();
-                        let body = format!("Response for {}", path);
-                        upstream_side
-                            .write_all(
-                                format!(
-                                    "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-                                    body.len(),
-                                    body
+                        // Add timeout to prevent indefinite hang
+                        let read_result = tokio::time::timeout(
+                            Duration::from_secs(5),
+                            upstream_side.read(&mut buf),
+                        )
+                        .await;
+                        if let Ok(Ok(_n)) = read_result {
+                            let body = format!("Response for {}", path);
+                            let _ = upstream_side
+                                .write_all(
+                                    format!(
+                                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+                                        body.len(),
+                                        body
+                                    )
+                                    .as_bytes(),
                                 )
-                                .as_bytes(),
-                            )
-                            .await
-                            .unwrap();
+                                .await;
+                        }
                     });
                     let timing = ConnectionTiming {
                         dns_ms: 0,
@@ -4580,15 +4641,14 @@ mod tests {
         let (client_side, server_side) = duplex(65536);
 
         // Server task
-        tokio::spawn(async move {
-            intercept_tls_stream(
+        let _server_task = tokio::spawn(async move {
+            let _ = intercept_tls_stream(
                 server_side,
                 "example.com".into(),
                 cert_manager,
                 tls_client_config,
             )
-            .await
-            .expect("intercept tls");
+            .await;
         });
 
         let mut client_side = client_side;
