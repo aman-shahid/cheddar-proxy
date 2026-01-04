@@ -457,6 +457,7 @@ class TrafficState extends ChangeNotifier {
           port: 9090,
           bindAddress: "127.0.0.1",
           enableHttps: true,
+          enableH2: true, // Re-enabled after fixing 411 and CRLF issues
           storagePath: _storagePath ?? "./",
         );
         await rust_api.startProxy(config: config);

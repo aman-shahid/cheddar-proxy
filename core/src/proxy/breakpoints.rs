@@ -210,6 +210,7 @@ pub async fn maybe_pause_request(
 
     tx.state = TransactionState::Breakpointed;
     tx.has_breakpoint = true;
+    let _ = crate::storage::persist_transaction(tx.clone()).await;
     send_transaction_to_sink(tx.clone());
     emit_event(BreakpointEvent::hit(tx.id.clone(), ctx.clone()));
 

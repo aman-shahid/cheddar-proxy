@@ -67,10 +67,13 @@ impl PlatformProxyAdapter for WindowsProxyAdapter {
             Err(err) => Err(anyhow!(err)),
         }
     }
-
     fn detect_certificate_trust(&self, common_name: &str) -> Result<CertTrustStatus> {
         let query = format!("Root {}", common_name);
-        let trusted = Self::run_certutil(&["-store", "-user", "Root", &query]).unwrap_or_default();
+        let trusted =
+            match Self::run_certutil(&["-store", "-user", "Root", &query]).unwrap_or_default() {
+                Ok(found) => found,
+                Err(_) => false,
+            };
         Ok(if trusted {
             CertTrustStatus::Trusted
         } else {

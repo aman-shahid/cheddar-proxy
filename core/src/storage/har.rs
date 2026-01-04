@@ -201,7 +201,7 @@ impl HarEntry {
         let started_datetime = Utc
             .timestamp_millis_opt(tx.timing.start_time)
             .single()
-            .unwrap_or(Utc::now())
+            .unwrap_or_else(Utc::now)
             .to_rfc3339();
         let time = tx.timing.total_ms.unwrap_or(0) as i64;
         Self {
@@ -470,10 +470,7 @@ fn entry_to_transaction(entry: RawHarEntry) -> anyhow::Result<HttpTransaction> {
         .request
         .method
         .as_deref()
-        .map(|m| {
-            m.parse::<HttpMethod>()
-                .unwrap_or_else(|_| HttpMethod::from_str_lossy(m))
-        })
+        .map(HttpMethod::from_str_lossy)
         .unwrap_or(HttpMethod::Get);
     let parts = parse_url_parts(&url);
     let scheme = parts.scheme;
@@ -506,7 +503,7 @@ fn entry_to_transaction(entry: RawHarEntry) -> anyhow::Result<HttpTransaction> {
     let timing = TransactionTiming {
         start_time,
         total_ms: entry.time.map(|t| t.max(0.0) as u32),
-        ..TransactionTiming::default()
+        ..Default::default()
     };
 
     Ok(HttpTransaction {
@@ -537,6 +534,7 @@ fn entry_to_transaction(entry: RawHarEntry) -> anyhow::Result<HttpTransaction> {
         tls_version: None,
         tls_cipher: None,
         connection_reused: false,
+        stream_id: None,
         is_websocket: false,
     })
 }

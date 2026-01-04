@@ -182,6 +182,8 @@ pub struct HttpTransaction {
     pub tls_cipher: Option<String>,
     /// Whether an existing connection was reused (keep-alive)
     pub connection_reused: bool,
+    /// HTTP/2 stream identifier (if applicable)
+    pub stream_id: Option<u32>,
     /// Whether this is a WebSocket upgrade connection
     pub is_websocket: bool,
 }
@@ -247,6 +249,7 @@ impl HttpTransaction {
             tls_version: None,
             tls_cipher: None,
             connection_reused: false,
+            stream_id: None,
             is_websocket: false,
         }
     }

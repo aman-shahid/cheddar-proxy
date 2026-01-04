@@ -2209,10 +2209,11 @@ class _TimingBar extends StatelessWidget {
       );
     }
 
-    final widthFactor = maxDuration.inMilliseconds > 0
+    final upperBound = (1.0 - offsetFactor).clamp(0.0, 1.0);
+    final widthFactor = maxDuration.inMilliseconds > 0 && upperBound > 0
         ? (duration!.inMilliseconds / maxDuration.inMilliseconds).clamp(
             0.0,
-            1.0 - offsetFactor,
+            upperBound,
           )
         : 0.0;
 
@@ -2248,7 +2249,10 @@ class _TimingBar extends StatelessWidget {
                     top: 0,
                     bottom: 0,
                     child: Container(
-                      width: barWidth.clamp(0, totalWidth - offsetPx),
+                      width: barWidth.clamp(
+                        0,
+                        math.max(0.0, totalWidth - offsetPx),
+                      ),
                       decoration: BoxDecoration(
                         color: color.withValues(alpha: 0.7),
                         borderRadius: BorderRadius.circular(4),

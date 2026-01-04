@@ -88,7 +88,6 @@ pub fn init_core(storage_path: Option<String>) -> Result<bool, String> {
                 e
             )
         })?;
-
         let file_appender = tracing_appender::rolling::daily(&log_dir, "cheddarproxy_core");
         let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 
@@ -135,6 +134,8 @@ pub struct ProxyConfig {
     pub bind_address: String,
     /// Whether to enable HTTPS interception
     pub enable_https: bool,
+    /// Whether to enable HTTP/2 support for upstream connections
+    pub enable_h2: bool,
     /// Path to store certificates (e.g. CA)
     pub storage_path: String,
 }
@@ -145,6 +146,7 @@ impl Default for ProxyConfig {
             port: 9090,
             bind_address: "127.0.0.1".to_string(),
             enable_https: false,
+            enable_h2: false,
             storage_path: "./".to_string(),
         }
     }
@@ -391,7 +393,6 @@ pub async fn start_proxy(config: ProxyConfig) -> Result<bool, String> {
         tracing::info!("Proxy already running");
         return Ok(true);
     }
-
     // Find an available port starting from the requested one
     let selected_port = find_available_port(&config.bind_address, config.port, 20).await?;
 
@@ -423,6 +424,7 @@ pub async fn start_proxy(config: ProxyConfig) -> Result<bool, String> {
     let bind_address = config.bind_address.clone();
     let port = selected_port;
     let enable_https = config.enable_https;
+    let enable_h2 = config.enable_h2;
     let storage_path = config.storage_path.clone();
 
     tokio::spawn(async move {
@@ -430,6 +432,7 @@ pub async fn start_proxy(config: ProxyConfig) -> Result<bool, String> {
             bind_address,
             port,
             enable_https,
+            enable_h2,
             storage_path,
         };
 
@@ -635,7 +638,7 @@ pub async fn export_har_file(
     Ok(count as u64)
 }
 
-/// List recent transactions (ordered by started_at DESC) up to a limit.
+// List recent transactions (ordered by started_at DESC) up to a limit.
 #[frb]
 pub async fn list_recent_transactions(limit: u32) -> Result<Vec<HttpTransaction>, String> {
     storage::list_recent_transactions(limit)

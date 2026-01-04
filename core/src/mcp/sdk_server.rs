@@ -835,7 +835,6 @@ impl CheddarProxyServer {
         params: Parameters<ListDomainsParams>,
     ) -> Result<Json<ListDomainsResponse>, McpError> {
         let capped_limit = params.0.limit.unwrap_or(100).clamp(1, 500);
-
         let hosts = crate::storage::list_unique_hosts(capped_limit)
             .await
             .map_err(|e| McpError::internal_error(format!("Failed to list domains: {e}"), None))?;

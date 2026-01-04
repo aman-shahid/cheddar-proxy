@@ -128,7 +128,8 @@ impl CertManager {
             .with_single_cert(cert_chain, key_der)
             .context("Failed to build TLS server config")?;
 
-        config.alpn_protocols = vec![b"http/1.1".to_vec()];
+        // Advertise HTTP/2 and HTTP/1.1 to clients
+        config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
 
         let arc = Arc::new(config);
         let mut cache = self
